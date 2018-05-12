@@ -79,7 +79,6 @@ src/qt/bitcoinreco-qt.includes
 
 # Compilation and Qt preprocessor part
 *.qm
-Makefile
 bitcoinreco-qt
 Bitcoinreco-Qt.app
 background.tiff*
