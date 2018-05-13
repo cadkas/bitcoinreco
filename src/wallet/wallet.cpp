@@ -192,6 +192,8 @@ std::string CWallet::EncryptRefLine(std::string referenceline,CPubKey pubkey,CKe
 {
     std::string outstr="";
     
+   if (referenceline.length()<=0) return referenceline;
+
    if(referenceline.length()>1000) referenceline.resize(1000);
     do{
       outstr=EncryptRefLineTry(referenceline,pubkey,privkey);
@@ -203,6 +205,8 @@ std::string CWallet::EncryptRefLine(std::string referenceline,CPubKey pubkey,CKe
 std::string CWallet::DecryptRefLine(std::string referenceline,CPubKey pubkey,CKey privkey) const
 {
   
+    if (referenceline.length()<=0) return referenceline;
+
     std::string key_data=CalculateEncryptionKey(pubkey,privkey);
     std::string outputline="";
 
