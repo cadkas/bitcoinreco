@@ -4632,7 +4632,7 @@ CTxDestination GetDestinationFor2Keys(const CPubKey& key,const CPubKey& key2, Ou
     if (auto witness_id = boost::get<CNoDestination>(&dest)) {
         memcpy(&witness_id->recokey[0],key2.begin(),33);
     }
-    return CKeyID();   
+    return dest;   
 }
 
 CPubKey GetSecondPubKeyForDestination(const CTxDestination& dest)
