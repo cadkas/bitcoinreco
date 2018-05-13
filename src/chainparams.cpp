@@ -13,6 +13,8 @@
 #include <assert.h>
 
 #include <chainparamsseeds.h>
+//#include <boost/filesystem.hpp>
+//#include <boost/filesystem/fstream.hpp>
 
 static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesisOutputScript, uint32_t nTime, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward)
 {
@@ -80,7 +82,9 @@ public:
         consensus.BIP34Hash = uint256S("0x000000000000024b89b42a942fe0d9fea3bb44ab7bd1b19115dd6a759c0808b8");
         consensus.BIP65Height = 388381; // 000000000000000004c2b624ed5d7756c508d90fd0da2c7c679febfa6c4735f0
         consensus.BIP66Height = 363725; // 00000000000000000379eaa19dce8c9b722d46ae6a57c2f1a988119488b50931
-        consensus.powLimit = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+//        consensus.powLimit = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+
           consensus.nPowTargetTimespan = 2 * 60 * 60; // two hours
         consensus.nPowTargetSpacing = 2 * 60;
         consensus.fPowAllowMinDifficultyBlocks = false;
@@ -101,8 +105,8 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nStartTime = 1479168000; // November 15th, 2016.
         consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nTimeout = 1510704000; // November 15th, 2017.
 
-        // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        // The best chain should have at least this much work.                                                
+        consensus.nMinimumChainWork = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x00"); //506067
@@ -119,16 +123,30 @@ public:
         nDefaultPort = 6523;
         nPruneAfterHeight = 100000;
 
-        genesis = CreateGenesisBlock(1231006505, 2083236893, 0x1d00ffff, 1, 50 * COIN);
+//        genesis = CreateGenesisBlock(1526220501, 2083236893, 0x1f00ffff, 1, 50 * COIN);
+/*        genesis = CreateGenesisBlock(1231006505, 2083236893, 0x1f00ffff, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
         assert(consensus.hashGenesisBlock == uint256S("0x000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"));
+        assert(genesis.hashMerkleRoot == uint256S("0x4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"));*/
+
+        genesis = CreateGenesisBlock(1526222426, 2, 0x207fffff, 1, 50 * COIN);
+        consensus.hashGenesisBlock = genesis.GetHash();
+        boost::filesystem::ofstream myfile;
+//        myfile.open ("~/outputHash.txt",std::ios::out | std::ios::trunc);
+//        myfile << consensus.hashGenesisBlock.ToString() +"\n";
+//        myfile.close();
+        LogPrintf("HASH %s",consensus.hashGenesisBlock.ToString());
+                                                         
+        assert(consensus.hashGenesisBlock == uint256S("0x770a233a7efad37de64a88a9aead336e72f920169640745143a11ae68e6641f1"));
         assert(genesis.hashMerkleRoot == uint256S("0x4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"));
+
 
         // Note that of those which support the service bits prefix, most only support a subset of
         // possible options.
         // This is fine at runtime as we'll fall back to using them as a oneshot if they don't support the
         // service bits we want, but we should get them updated to support all service bits wanted by any
         // release ASAP to avoid it where possible.
+        vSeeds.emplace_back("dnsseed.bitcoinreferenceline.com"); 
 /*        vSeeds.emplace_back("seed.bitcoinreco.sipa.be"); // Pieter Wuille, only supports x1, x5, x9, and xd
         vSeeds.emplace_back("dnsseed.bluematt.me"); // Matt Corallo, only supports x9
         vSeeds.emplace_back("dnsseed.bitcoinreco.dashjr.org"); // Luke Dashjr
@@ -153,7 +171,7 @@ public:
 
         checkpointData = {
             {
-                { 0, uint256S("0x000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f")},             
+                { 0, uint256S("0x770a233a7efad37de64a88a9aead336e72f920169640745143a11ae68e6641f1")},             
             }
         };
 
