@@ -57,7 +57,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 {
                     // Received by Bitcoinreco Address
                     sub.type = TransactionRecord::RecvWithAddress;
-                    sub.address = EncodeDestination(wtx.txout_address[i]);
+                    sub.address = "T1"+EncodeDestination(wtx.txout_address[i]);
                 }
                 else
                 {

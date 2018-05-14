@@ -1589,6 +1589,7 @@ bool CWallet::IsChange(const CTxOut& txout) const
         CTxDestination address;
         if (!ExtractDestination(txout.scriptPubKey, address))
             return true;
+        SetSecondPubKeyForDestination(address,txout.receiverPubKey);
 
         LOCK(cs_wallet);
         if (!mapAddressBook.count(address))
@@ -1898,6 +1899,7 @@ void CWalletTx::GetAmounts(std::list<COutputEntry>& listReceived,
                      this->GetHash().ToString());
             address = CNoDestination();
         }
+        SetSecondPubKeyForDestination(address,txout.receiverPubKey);
 
         COutputEntry output = {address, txout.nValue, (int)i, txout.referenceline,txout.senderPubKey,txout.receiverPubKey};
 
@@ -2641,6 +2643,7 @@ std::map<CTxDestination, std::vector<COutput>> CWallet::ListCoins() const
         CTxDestination address;
         if (coin.fSpendable &&
             ExtractDestination(FindNonChangeParentOutput(*coin.tx->tx, coin.i).scriptPubKey, address)) {
+            SetSecondPubKeyForDestination(address,FindNonChangeParentOutput(*coin.tx->tx, coin.i).receiverPubKey);
             result[address].emplace_back(std::move(coin));
         }
     }
@@ -2655,6 +2658,7 @@ std::map<CTxDestination, std::vector<COutput>> CWallet::ListCoins() const
                 IsMine(it->second.tx->vout[output.n]) == ISMINE_SPENDABLE) {
                 CTxDestination address;
                 if (ExtractDestination(FindNonChangeParentOutput(*it->second.tx, output.n).scriptPubKey, address)) {
+                    SetSecondPubKeyForDestination(address,FindNonChangeParentOutput(*it->second.tx, output.n).receiverPubKey);
                     result[address].emplace_back(
                         &it->second, output.n, depth, true /* spendable */, true /* solvable */, false /* safe */);
                 }
@@ -3794,6 +3798,7 @@ std::map<CTxDestination, CAmount> CWallet::GetAddressBalances()
                     continue;
                 if(!ExtractDestination(pcoin->tx->vout[i].scriptPubKey, addr))
                     continue;
+                SetSecondPubKeyForDestination(addr,pcoin->tx->vout[i].receiverPubKey);
 
                 CAmount n = IsSpent(walletEntry.first, i) ? 0 : pcoin->tx->vout[i].nValue;
 
@@ -3828,6 +3833,7 @@ std::set< std::set<CTxDestination> > CWallet::GetAddressGroupings()
                     continue;
                 if(!ExtractDestination(mapWallet.at(txin.prevout.hash).tx->vout[txin.prevout.n].scriptPubKey, address))
                     continue;
+                SetSecondPubKeyForDestination(address,mapWallet.at(txin.prevout.hash).tx->vout[txin.prevout.n].receiverPubKey);
                 grouping.insert(address);
                 any_mine = true;
             }
@@ -3841,6 +3847,7 @@ std::set< std::set<CTxDestination> > CWallet::GetAddressGroupings()
                        CTxDestination txoutAddr;
                        if(!ExtractDestination(txout.scriptPubKey, txoutAddr))
                            continue;
+                       SetSecondPubKeyForDestination(txoutAddr,txout.receiverPubKey);
                        grouping.insert(txoutAddr);
                    }
             }
@@ -3858,6 +3865,7 @@ std::set< std::set<CTxDestination> > CWallet::GetAddressGroupings()
                 CTxDestination address;
                 if(!ExtractDestination(txout.scriptPubKey, address))
                     continue;
+                SetSecondPubKeyForDestination(address,txout.receiverPubKey);
                 grouping.insert(address);
                 groupings.insert(grouping);
                 grouping.clear();
@@ -4668,6 +4676,34 @@ CPubKey GetSecondPubKeyForDestination(const CTxDestination& dest)
         key2=CPubKey(id->recokey); 
     }
     return key2;   
+}
+
+void SetSecondPubKeyForDestination(CTxDestination& dest, const CPubKey& key2)
+{
+    if (auto id = boost::get<CKeyID>(&dest)) {
+        id->recokey.resize(33);
+        std::copy(key2.begin(), key2.end() , id->recokey.begin());
+    }
+    if (auto id = boost::get<WitnessV0ScriptHash>(&dest)) {
+        id->recokey.resize(33);
+        std::copy(key2.begin(), key2.end() , id->recokey.begin());
+    }
+    if (auto id = boost::get<WitnessV0KeyHash>(&dest)) {
+        id->recokey.resize(33);
+        std::copy(key2.begin(), key2.end() , id->recokey.begin());
+    }
+    if (auto id = boost::get<CScriptID>(&dest)) {
+        id->recokey.resize(33);
+        std::copy(key2.begin(), key2.end() , id->recokey.begin());
+    }
+    if (auto id = boost::get<WitnessUnknown>(&dest)) {
+        id->recokey.resize(33);
+        std::copy(key2.begin(), key2.end() , id->recokey.begin());
+    }
+    if (auto id = boost::get<CNoDestination>(&dest)) {
+        id->recokey.resize(33);
+        std::copy(key2.begin(), key2.end() , id->recokey.begin());
+    }
 }
 
 std::vector<CTxDestination> GetAllDestinationsForKey(const CPubKey& key)

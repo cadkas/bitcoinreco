@@ -1554,6 +1554,7 @@ static UniValue ListReceived(CWallet * const pwallet, const UniValue& params, bo
             CTxDestination address;
             if (!ExtractDestination(txout.scriptPubKey, address))
                 continue;
+            SetSecondPubKeyForDestination(address,txout.receiverPubKey);
 
             if (has_filtered_address && !(filtered_address == address)) {
                 continue;
@@ -3196,6 +3197,7 @@ static UniValue listunspent(const JSONRPCRequest& request)
         CTxDestination address;
         const CScript& scriptPubKey = out.tx->tx->vout[out.i].scriptPubKey;
         bool fValidAddress = ExtractDestination(scriptPubKey, address);
+        SetSecondPubKeyForDestination(address,out.tx->tx->vout[out.i].receiverPubKey);
 
         if (destinations.size() && (!fValidAddress || !destinations.count(address)))
             continue;

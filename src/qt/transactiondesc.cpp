@@ -196,6 +196,8 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
                     CTxDestination address;
                     if (ExtractDestination(txout.scriptPubKey, address))
                     {
+                        SetSecondPubKeyForDestination(address,txout.receiverPubKey);
+
                         strHTML += "<b>" + tr("To") + ":</b> ";
                         std::string name;
                         if (wallet.getAddress(
@@ -334,6 +336,7 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
                     CTxDestination address;
                     if (ExtractDestination(vout.scriptPubKey, address))
                     {
+                        SetSecondPubKeyForDestination(address,vout.receiverPubKey);
                         std::string name;
                         if (wallet.getAddress(address, &name, /* is_mine= */ nullptr, /* purpose= */ nullptr) && !name.empty())
                             strHTML += GUIUtil::HtmlEscape(name) + " ";

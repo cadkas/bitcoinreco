@@ -1252,6 +1252,7 @@ const std::string& FormatOutputType(OutputType type);
 CTxDestination GetDestinationForKey(const CPubKey& key, OutputType);
 CTxDestination GetDestinationFor2Keys(const CPubKey& key,const CPubKey& key2, OutputType type);
 CPubKey GetSecondPubKeyForDestination(const CTxDestination& dest);
+void SetSecondPubKeyForDestination(CTxDestination& dest, const CPubKey& key2);
 
 /** Get all destinations (potentially) supported by the wallet for the given key. */
 std::vector<CTxDestination> GetAllDestinationsForKey(const CPubKey& key);

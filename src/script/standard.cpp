@@ -227,6 +227,37 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
     return false;
 }
 
+bool ExtractDestination2Keys(const CScript& scriptPubKey, const CPubKey& key2, CTxDestination& dest)
+{
+   bool ret=ExtractDestination(scriptPubKey,dest);
+
+    if (auto id = boost::get<CKeyID>(&dest)) {
+        id->recokey.resize(33);
+        std::copy(key2.begin(), key2.end() , id->recokey.begin());
+    }
+    if (auto id = boost::get<WitnessV0ScriptHash>(&dest)) {
+        id->recokey.resize(33);
+        std::copy(key2.begin(), key2.end() , id->recokey.begin());
+    }
+    if (auto id = boost::get<WitnessV0KeyHash>(&dest)) {
+        id->recokey.resize(33);
+        std::copy(key2.begin(), key2.end() , id->recokey.begin());
+    }
+    if (auto id = boost::get<CScriptID>(&dest)) {
+        id->recokey.resize(33);
+        std::copy(key2.begin(), key2.end() , id->recokey.begin());
+    }
+    if (auto id = boost::get<WitnessUnknown>(&dest)) {
+        id->recokey.resize(33);
+        std::copy(key2.begin(), key2.end() , id->recokey.begin());
+    }
+    if (auto id = boost::get<CNoDestination>(&dest)) {
+        id->recokey.resize(33);
+        std::copy(key2.begin(), key2.end() , id->recokey.begin());
+    }  
+   return ret;
+}
+
 bool ExtractDestinations(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<CTxDestination>& addressRet, int& nRequiredRet)
 {
     addressRet.clear();
