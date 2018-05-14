@@ -185,6 +185,7 @@ static UniValue getnewaddress(const JSONRPCRequest& request)
 
     pwallet->LearnRelatedScripts(newKey, output_type);
     pwallet->LearnRelatedScripts(newKey2, output_type);
+  
     CTxDestination dest = GetDestinationFor2Keys(newKey, newKey2, output_type);
 
     pwallet->SetAddressBook(dest, label, "receive");

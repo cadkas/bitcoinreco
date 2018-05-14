@@ -20,7 +20,7 @@ const unsigned int BIP32_EXTKEY_SIZE = 74;
 class CKeyID : public uint160
 {
 public:
-    unsigned char recokey[33];
+    std::vector<unsigned char> recokey;
 
     CKeyID() : uint160() {}
     explicit CKeyID(const uint160& in) : uint160(in) {}

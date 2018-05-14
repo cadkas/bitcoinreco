@@ -4619,22 +4619,28 @@ CTxDestination GetDestinationFor2Keys(const CPubKey& key,const CPubKey& key2, Ou
     dest=GetDestinationForKey(key,type);
 
     if (auto id = boost::get<CKeyID>(&dest)) {
-        memcpy(&id->recokey[0],key2.begin(),33);
+       id->recokey.resize(33);
+       std::copy(key2.begin(), key2.end() , id->recokey.begin());
     }
-    if (auto witness_id = boost::get<WitnessV0ScriptHash>(&dest)) {
-        memcpy(&witness_id->recokey[0],key2.begin(),33);
+    if (auto id = boost::get<WitnessV0ScriptHash>(&dest)) {
+       id->recokey.resize(33);
+       std::copy(key2.begin(), key2.end() , id->recokey.begin());
     }
-    if (auto witness_id = boost::get<WitnessV0KeyHash>(&dest)) {
-        memcpy(&witness_id->recokey[0],key2.begin(),33);
+    if (auto id = boost::get<WitnessV0KeyHash>(&dest)) {
+       id->recokey.resize(33);
+       std::copy(key2.begin(), key2.end() , id->recokey.begin());
     }
-    if (auto script_id = boost::get<CScriptID>(&dest)) {
-        memcpy(&script_id->recokey[0],key2.begin(),33);
+    if (auto id = boost::get<CScriptID>(&dest)) {
+       id->recokey.resize(33);
+       std::copy(key2.begin(), key2.end() , id->recokey.begin());
     }
-    if (auto witness_id = boost::get<WitnessUnknown>(&dest)) {
-        memcpy(&witness_id->recokey[0],key2.begin(),33);
+    if (auto id = boost::get<WitnessUnknown>(&dest)) {
+       id->recokey.resize(33);
+       std::copy(key2.begin(), key2.end() , id->recokey.begin());
     }
-    if (auto witness_id = boost::get<CNoDestination>(&dest)) {
-        memcpy(&witness_id->recokey[0],key2.begin(),33);
+    if (auto id = boost::get<CNoDestination>(&dest)) {
+       id->recokey.resize(33);
+       std::copy(key2.begin(), key2.end() , id->recokey.begin());
     }
     return dest;   
 }
@@ -4644,22 +4650,22 @@ CPubKey GetSecondPubKeyForDestination(const CTxDestination& dest)
     CPubKey key2;
 
     if (auto id = boost::get<CKeyID>(&dest)) {
-        key2=CPubKey(&id->recokey[0],&id->recokey[32]);
+        key2=CPubKey(id->recokey); 
     }
     if (auto id = boost::get<WitnessV0ScriptHash>(&dest)) {
-        key2=CPubKey(&id->recokey[0],&id->recokey[32]);
+        key2=CPubKey(id->recokey); 
     }
     if (auto id = boost::get<WitnessV0KeyHash>(&dest)) {
-        key2=CPubKey(&id->recokey[0],&id->recokey[32]);
+        key2=CPubKey(id->recokey); 
     }
     if (auto id = boost::get<CScriptID>(&dest)) {
-        key2=CPubKey(&id->recokey[0],&id->recokey[32]);
+        key2=CPubKey(id->recokey); 
     }
     if (auto id = boost::get<WitnessUnknown>(&dest)) {
-        key2=CPubKey(&id->recokey[0],&id->recokey[32]);
+        key2=CPubKey(id->recokey); 
     }
     if (auto id = boost::get<CNoDestination>(&dest)) {
-        key2=CPubKey(&id->recokey[0],&id->recokey[32]);
+        key2=CPubKey(id->recokey); 
     }
     return key2;   
 }

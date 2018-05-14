@@ -32,7 +32,7 @@ public:
     {
         std::vector<unsigned char> data = m_params.Base58Prefix(CChainParams::PUBKEY_ADDRESS);
         data.insert(data.end(), id.begin(), id.end());
-        data.insert(data.end(), &id.recokey[0], &id.recokey[33]);
+        data.insert(data.end(), id.recokey.begin(), id.recokey.end());
         return EncodeBase58Check(data);
     }
 
@@ -40,7 +40,8 @@ public:
     {
         std::vector<unsigned char> data = m_params.Base58Prefix(CChainParams::SCRIPT_ADDRESS);
         data.insert(data.end(), id.begin(), id.end());
-        data.insert(data.end(), &id.recokey[0], &id.recokey[33]);
+        //data.insert(data.end(), &id.recokey[0], &id.recokey[33]);
+        data.insert(data.end(), id.recokey.begin(), id.recokey.end());
         return EncodeBase58Check(data);
     }
 
@@ -87,7 +88,8 @@ CTxDestination DecodeDestination(const std::string& str, const CChainParams& par
             std::copy(data.begin() + pubkey_prefix.size(), data.begin() + pubkey_prefix.size()+20, hash.begin());
             CKeyID key;
             key=CKeyID(hash);                      
-            std::copy(data.begin() + pubkey_prefix.size()+20, data.begin() + pubkey_prefix.size()+20+33, &key.recokey[0]);
+            key.recokey.resize(33);
+            std::copy(data.begin() + pubkey_prefix.size()+20, data.begin() + pubkey_prefix.size()+20+33, key.recokey.begin());
             return key;
         }
         // Script-hash-addresses have version 5 (or 196 testnet).
@@ -97,7 +99,10 @@ CTxDestination DecodeDestination(const std::string& str, const CChainParams& par
             std::copy(data.begin() + script_prefix.size(), data.begin() + script_prefix.size()+20, hash.begin());
             CScriptID key;
             key=CScriptID(hash);                      
-            std::copy(data.begin() + script_prefix.size()+20, data.begin() + script_prefix.size()+20+33, &key.recokey[0]);
+            key.recokey.resize(33);
+            std::copy(data.begin() + pubkey_prefix.size()+20, data.begin() + pubkey_prefix.size()+20+33, key.recokey.begin());
+
+//            std::copy(data.begin() + script_prefix.size()+20, data.begin() + script_prefix.size()+20+33, &key.recokey[0]);
             return key;
         }
     }

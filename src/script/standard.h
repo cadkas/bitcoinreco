@@ -22,7 +22,7 @@ class CScript;
 class CScriptID : public uint160
 {
 public:
-    unsigned char recokey[33];
+    std::vector<unsigned char> recokey;
 
     CScriptID() : uint160() {}
     explicit CScriptID(const CScript& in);
@@ -71,7 +71,7 @@ enum txnouttype
 
 class CNoDestination {
 public:
-    unsigned char recokey[33];
+    std::vector<unsigned char> recokey;
 
     friend bool operator==(const CNoDestination &a, const CNoDestination &b) { return true; }
     friend bool operator<(const CNoDestination &a, const CNoDestination &b) { return true; }
@@ -83,7 +83,7 @@ struct WitnessV0ScriptHash : public uint256
     explicit WitnessV0ScriptHash(const uint256& hash) : uint256(hash) {}
     using uint256::uint256;
 public:
-    unsigned char recokey[33];
+    std::vector<unsigned char> recokey;
 };
 
 struct WitnessV0KeyHash : public uint160
@@ -92,7 +92,7 @@ struct WitnessV0KeyHash : public uint160
     explicit WitnessV0KeyHash(const uint160& hash) : uint160(hash) {}
     using uint160::uint160;
 public:
-    unsigned char recokey[33];
+    std::vector<unsigned char> recokey;
 };
 
 //! CTxDestination subtype to encode any future Witness version
@@ -116,7 +116,7 @@ struct WitnessUnknown
         return std::lexicographical_compare(w1.program, w1.program + w1.length, w2.program, w2.program + w2.length);
     }
 public:
-    unsigned char recokey[33];
+    std::vector<unsigned char> recokey;
 };
 
 /**
