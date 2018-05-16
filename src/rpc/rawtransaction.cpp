@@ -473,7 +473,6 @@ static UniValue createrawtransaction(const JSONRPCRequest& request)
             std::vector<unsigned char> data = ParseHexV(outputs[name_].getValStr(), "Data");
 
             CTxOut out(0, CScript() << OP_RETURN << data);
-            out.referenceline=referenceline;
             rawTx.vout.push_back(out);
         } else {
             CTxDestination destination = DecodeDestination(name_);
@@ -500,6 +499,42 @@ static UniValue createrawtransaction(const JSONRPCRequest& request)
 
     return EncodeHexTx(rawTx);
 }
+
+static UniValue createrawtransactionfromscript(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() < 2 || request.params.size() > 2) {
+        throw std::runtime_error(
+            // clang-format off
+            "createrawtransactionfromscript \"scriptPubKey\" amount\n"
+            "\nCreate a transaction with one output with a scriptpubkey and an amount.\n"
+            "Returns hex-encoded raw transaction.\n"
+            "Note that the transaction's inputs are not signed, and\n"
+            "it is not stored in the wallet or transmitted to the network.\n"
+            "\nArguments:\n"
+            "1. \"scriptPubKey\"            The scriptPubKey\n"
+            "2. amount                      The amount\n"
+            "\nResult:\n"
+            "\"transaction\"              (string) hex string of the transaction\n"
+
+        );
+    }
+
+    CAmount nAmount = AmountFromValue(request.params[1]);
+    if (nAmount <= 0)
+        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid amount for send");
+
+    CMutableTransaction rawTx;
+    CScript scriptPubKey;
+
+    std::vector<unsigned char> scriptData(ParseHexV(request.params[0], "argument"));
+    scriptPubKey = CScript(scriptData.begin(), scriptData.end());
+
+    CTxOut out(nAmount, scriptPubKey);
+    rawTx.vout.push_back(out);
+
+    return EncodeHexTx(rawTx);
+}
+
 
 static UniValue decoderawtransaction(const JSONRPCRequest& request)
 {
@@ -575,87 +610,6 @@ static UniValue decoderawtransaction(const JSONRPCRequest& request)
     TxToUniv(CTransaction(std::move(mtx)), uint256(), result, false);
 
     return result;
-}
-
-static UniValue decodescript(const JSONRPCRequest& request)
-{
-    if (request.fHelp || request.params.size() != 1)
-        throw std::runtime_error(
-            "decodescript \"hexstring\"\n"
-            "\nDecode a hex-encoded script.\n"
-            "\nArguments:\n"
-            "1. \"hexstring\"     (string) the hex encoded script\n"
-            "\nResult:\n"
-            "{\n"
-            "  \"asm\":\"asm\",   (string) Script public key\n"
-            "  \"hex\":\"hex\",   (string) hex encoded public key\n"
-            "  \"type\":\"type\", (string) The output type\n"
-            "  \"reqSigs\": n,    (numeric) The required signatures\n"
-            "  \"addresses\": [   (json array of string)\n"
-            "     \"address\"     (string) bitcoinreco address\n"
-            "     ,...\n"
-            "  ],\n"
-            "  \"p2sh\",\"address\" (string) address of P2SH script wrapping this redeem script (not returned if the script is already a P2SH).\n"
-            "}\n"
-            "\nExamples:\n"
-            + HelpExampleCli("decodescript", "\"hexstring\"")
-            + HelpExampleRpc("decodescript", "\"hexstring\"")
-        );
-
-    RPCTypeCheck(request.params, {UniValue::VSTR});
-
-    UniValue r(UniValue::VOBJ);
-    CScript script;
-    if (request.params[0].get_str().size() > 0){
-        std::vector<unsigned char> scriptData(ParseHexV(request.params[0], "argument"));
-        script = CScript(scriptData.begin(), scriptData.end());
-    } else {
-        // Empty scripts are valid
-    }
-    ScriptPubKeyToUniv(script, r, false);
-
-    UniValue type;
-    type = find_value(r, "type");
-
-    if (type.isStr() && type.get_str() != "scripthash") {
-        // P2SH cannot be wrapped in a P2SH. If this script is already a P2SH,
-        // don't return the address for a P2SH of the P2SH.
-        r.pushKV("p2sh", EncodeDestination(CScriptID(script)));
-        // P2SH and witness programs cannot be wrapped in P2WSH, if this script
-        // is a witness program, don't return addresses for a segwit programs.
-        if (type.get_str() == "pubkey" || type.get_str() == "pubkeyhash" || type.get_str() == "multisig" || type.get_str() == "nonstandard") {
-            txnouttype which_type;
-            std::vector<std::vector<unsigned char>> solutions_data;
-            Solver(script, which_type, solutions_data);
-            // Uncompressed pubkeys cannot be used with segwit checksigs.
-            // If the script contains an uncompressed pubkey, skip encoding of a segwit program.
-            if ((which_type == TX_PUBKEY) || (which_type == TX_MULTISIG)) {
-                for (const auto& solution : solutions_data) {
-                    if ((solution.size() != 1) && !CPubKey(solution).IsCompressed()) {
-                        return r;
-                    }
-                }
-            }
-            UniValue sr(UniValue::VOBJ);
-            CScript segwitScr;
-            if (which_type == TX_PUBKEY) {
-                segwitScr = GetScriptForDestination(WitnessV0KeyHash(Hash160(solutions_data[0].begin(), solutions_data[0].end())));
-            } else if (which_type == TX_PUBKEYHASH) {
-                segwitScr = GetScriptForDestination(WitnessV0KeyHash(solutions_data[0]));
-            } else {
-                // Scripts that are not fit for P2WPKH are encoded as P2WSH.
-                // Newer segwit program versions should be considered when then become available.
-                uint256 scriptHash;
-                CSHA256().Write(script.data(), script.size()).Finalize(scriptHash.begin());
-                segwitScr = GetScriptForDestination(WitnessV0ScriptHash(scriptHash));
-            }
-            ScriptPubKeyToUniv(segwitScr, sr, true);
-            sr.pushKV("p2sh-segwit", EncodeDestination(CScriptID(segwitScr)));
-            r.pushKV("segwit", sr);
-        }
-    }
-
-    return r;
 }
 
 /** Pushes a JSON object for script verification or signing errors to vErrorsRet. */
@@ -1271,8 +1225,8 @@ static const CRPCCommand commands[] =
   //  --------------------- ------------------------        -----------------------     ----------
     { "rawtransactions",    "getrawtransaction",            &getrawtransaction,         {"txid","verbose","blockhash"} },
     { "rawtransactions",    "createrawtransaction",         &createrawtransaction,      {"inputs","outputs","locktime","replaceable"} },
+    { "rawtransactions",    "createrawtransactionfromscript",&createrawtransactionfromscript,{"inputs","outputs","locktime","replaceable"} },
     { "rawtransactions",    "decoderawtransaction",         &decoderawtransaction,      {"hexstring","iswitness"} },
-    { "rawtransactions",    "decodescript",                 &decodescript,              {"hexstring"} },
     { "rawtransactions",    "sendrawtransaction",           &sendrawtransaction,        {"hexstring","allowhighfees"} },
     { "rawtransactions",    "combinerawtransaction",        &combinerawtransaction,     {"txs"} },
     { "rawtransactions",    "signrawtransaction",           &signrawtransaction,        {"hexstring","prevtxs","privkeys","sighashtype"} }, /* uses wallet if enabled */

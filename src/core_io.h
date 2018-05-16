@@ -16,6 +16,7 @@ class CTransaction;
 struct CMutableTransaction;
 class uint256;
 class UniValue;
+class CPubKey;
 
 // core_read.cpp
 CScript ParseScript(const std::string& s);
@@ -30,7 +31,8 @@ std::vector<unsigned char> ParseHexUV(const UniValue& v, const std::string& strN
 UniValue ValueFromAmount(const CAmount& amount);
 std::string FormatScript(const CScript& script);
 std::string EncodeHexTx(const CTransaction& tx, const int serializeFlags = 0);
-void ScriptPubKeyToUniv(const CScript& scriptPubKey, UniValue& out, bool fIncludeHex);
+void ScriptPubKeyToUniv(const CScript& scriptPubKey, UniValue& out, bool fIncludeHex,const CPubKey& key2);
+
 void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry, bool include_hex = true, int serialize_flags = 0);
 
 #endif // BITCOINRECO_CORE_IO_H

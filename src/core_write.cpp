@@ -15,6 +15,7 @@
 #include <util.h>
 #include <utilmoneystr.h>
 #include <utilstrencodings.h>
+#include <wallet/wallet.h>
 
 UniValue ValueFromAmount(const CAmount& amount)
 {
@@ -129,7 +130,7 @@ std::string EncodeHexTx(const CTransaction& tx, const int serializeFlags)
 }
 
 void ScriptPubKeyToUniv(const CScript& scriptPubKey,
-                        UniValue& out, bool fIncludeHex)
+                        UniValue& out, bool fIncludeHex,const CPubKey& key2)
 {
     txnouttype type;
     std::vector<CTxDestination> addresses;
@@ -149,7 +150,7 @@ void ScriptPubKeyToUniv(const CScript& scriptPubKey,
 
     UniValue a(UniValue::VARR);
     for (const CTxDestination& addr : addresses) {
-        a.push_back(EncodeDestination(addr));
+        a.push_back(EncodeDestination(addr,key2));
     }
     out.pushKV("addresses", a);
 }
@@ -200,7 +201,7 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry,
         out.pushKV("n", (int64_t)i);
 
         UniValue o(UniValue::VOBJ);
-        ScriptPubKeyToUniv(txout.scriptPubKey, o, true);
+        ScriptPubKeyToUniv(txout.scriptPubKey, o, true,txout.receiverPubKey);
         out.pushKV("scriptPubKey", o);
         vout.push_back(out);
     }

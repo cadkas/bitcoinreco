@@ -66,7 +66,7 @@ void TestAddAddressesToSendBook()
         CTxDestination dest(GetDestinationForKey(
             key.GetPubKey(), wallet.m_default_address_type));
 
-        return std::make_pair(dest, QString::fromStdString(EncodeDestination(dest)));
+        return std::make_pair(dest, QString::fromStdString(EncodeDestinationHasSecondKey(dest)));
     };
 
     CTxDestination r_key_dest, s_key_dest;

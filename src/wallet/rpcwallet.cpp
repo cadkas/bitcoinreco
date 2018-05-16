@@ -190,7 +190,7 @@ static UniValue getnewaddress(const JSONRPCRequest& request)
 
     pwallet->SetAddressBook(dest, label, "receive");
 
-    return EncodeDestination(dest);
+    return EncodeDestinationHasSecondKey(dest);
 }
 
 CTxDestination GetLabelDestination(CWallet* const pwallet, const std::string& label, bool bForceNew=false)
@@ -256,7 +256,7 @@ static UniValue getlabeladdress(const JSONRPCRequest& request)
 
     UniValue ret(UniValue::VSTR);
 
-    ret = EncodeDestination(GetLabelDestination(pwallet, label));
+    ret = EncodeDestinationHasSecondKey(GetLabelDestination(pwallet, label));
     return ret;
 }
 
@@ -311,7 +311,7 @@ static UniValue getrawchangeaddress(const JSONRPCRequest& request)
     pwallet->LearnRelatedScripts(vchPubKey2, output_type);
     CTxDestination dest = GetDestinationFor2Keys(vchPubKey, vchPubKey2, output_type);
 
-    return EncodeDestination(dest);
+    return EncodeDestinationHasSecondKey(dest);
 }
 
 
@@ -452,7 +452,7 @@ static UniValue getaddressesbyaccount(const JSONRPCRequest& request)
         const CTxDestination& dest = item.first;
         const std::string& strName = item.second.name;
         if (strName == strAccount) {
-            ret.push_back(EncodeDestination(dest));
+            ret.push_back(EncodeDestinationHasSecondKey(dest));
         }
     }
     return ret;
@@ -635,7 +635,7 @@ static UniValue listaddressgroupings(const JSONRPCRequest& request)
         for (const CTxDestination& address : grouping)
         {
             UniValue addressInfo(UniValue::VARR);
-            addressInfo.push_back(EncodeDestination(address));
+            addressInfo.push_back(EncodeDestinationHasSecondKey(address));
             addressInfo.push_back(ValueFromAmount(balances[address]));
             {
                 if (pwallet->mapAddressBook.find(address) != pwallet->mapAddressBook.end()) {
@@ -1360,8 +1360,12 @@ static UniValue addmultisigaddress(const JSONRPCRequest& request)
     CTxDestination dest = pwallet->AddAndGetDestinationForScript(inner, output_type);
     pwallet->SetAddressBook(dest, label, "send");
 
+    CPubKey newKey;
+    if (!pwallet->GetKeyFromPool(newKey)) {
+        throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
+    }
     UniValue result(UniValue::VOBJ);
-    result.pushKV("address", EncodeDestination(dest));
+    result.pushKV("address", EncodeDestination(dest,newKey));
     result.pushKV("redeemScript", HexStr(inner.begin(), inner.end()));
     return result;
 }
@@ -1484,6 +1488,13 @@ static UniValue addwitnessaddress(const JSONRPCRequest& request)
         w.result = CScriptID(witprogram);
     }
 
+    // Generate a new key that is added to wallet
+    CPubKey newKey;
+    if (!pwallet->GetKeyFromPool(newKey)) {
+        throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
+    }
+    SetSecondPubKeyForDestination(w.result,newKey);
+
     if (w.already_witness) {
         if (!(dest == w.result)) {
             throw JSONRPCError(RPC_WALLET_ERROR, "Cannot convert between witness address types");
@@ -1493,7 +1504,7 @@ static UniValue addwitnessaddress(const JSONRPCRequest& request)
         pwallet->SetAddressBook(w.result, "", "receive");
     }
 
-    return EncodeDestination(w.result);
+    return EncodeDestinationHasSecondKey(w.result);
 }
 
 struct tallyitem
@@ -1619,7 +1630,7 @@ static UniValue ListReceived(CWallet * const pwallet, const UniValue& params, bo
             UniValue obj(UniValue::VOBJ);
             if(fIsWatchonly)
                 obj.pushKV("involvesWatchonly", true);
-            obj.pushKV("address",       EncodeDestination(address));
+            obj.pushKV("address",       EncodeDestinationHasSecondKey(address));
             obj.pushKV("account",       label);
             obj.pushKV("amount",        ValueFromAmount(nAmount));
             obj.pushKV("confirmations", (nConf == std::numeric_limits<int>::max() ? 0 : nConf));
@@ -1759,7 +1770,7 @@ static UniValue listreceivedbylabel(const JSONRPCRequest& request)
 static void MaybePushAddress(UniValue & entry, const CTxDestination &dest)
 {
     if (IsValidDestination(dest)) {
-        entry.pushKV("address", EncodeDestination(dest));
+        entry.pushKV("address", EncodeDestinationHasSecondKey(dest));
     }
 }
 
@@ -3207,7 +3218,7 @@ static UniValue listunspent(const JSONRPCRequest& request)
         entry.pushKV("vout", out.i);
 
         if (fValidAddress) {
-            entry.pushKV("address", EncodeDestination(address));
+            entry.pushKV("address", EncodeDestinationHasSecondKey(address));
 
             auto i = pwallet->mapAddressBook.find(address);
             if (i != pwallet->mapAddressBook.end()) {
@@ -3800,6 +3811,10 @@ public:
         obj.pushKV("script", GetTxnOutputType(which_type));
         obj.pushKV("hex", HexStr(subscript.begin(), subscript.end()));
 
+        CPubKey newKey;
+        if (!pwallet->GetKeyFromPool(newKey)) {
+            throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
+        }
         CTxDestination embedded;
         UniValue a(UniValue::VARR);
         if (ExtractDestination(subscript, embedded)) {
@@ -3809,12 +3824,12 @@ public:
             subobj.pushKVs(detail);
             UniValue wallet_detail = boost::apply_visitor(*this, embedded);
             subobj.pushKVs(wallet_detail);
-            subobj.pushKV("address", EncodeDestination(embedded));
+            subobj.pushKV("address", EncodeDestination(embedded,newKey));
             subobj.pushKV("scriptPubKey", HexStr(subscript.begin(), subscript.end()));
             // Always report the pubkey at the top level, so that `getnewaddress()['pubkey']` always works.
             if (subobj.exists("pubkey")) obj.pushKV("pubkey", subobj["pubkey"]);
             obj.pushKV("embedded", std::move(subobj));
-            if (include_addresses) a.push_back(EncodeDestination(embedded));
+            if (include_addresses) a.push_back(EncodeDestination(embedded,newKey));
         } else if (which_type == TX_MULTISIG) {
             // Also report some information on multisig scripts (which do not have a corresponding address).
             // TODO: abstract out the common functionality between this logic and ExtractDestinations.
@@ -3822,7 +3837,7 @@ public:
             UniValue pubkeys(UniValue::VARR);
             for (size_t i = 1; i < solutions_data.size() - 1; ++i) {
                 CPubKey key(solutions_data[i].begin(), solutions_data[i].end());
-                if (include_addresses) a.push_back(EncodeDestination(key.GetID()));
+                if (include_addresses) a.push_back(EncodeDestination(key.GetID(),newKey));
                 pubkeys.push_back(HexStr(key.begin(), key.end()));
             }
             obj.pushKV("pubkeys", std::move(pubkeys));
@@ -3970,7 +3985,7 @@ UniValue getaddressinfo(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address");
     }
 
-    std::string currentAddress = EncodeDestination(dest);
+    std::string currentAddress = EncodeDestinationHasSecondKey(dest);
     ret.pushKV("address", currentAddress);
 
     CScript scriptPubKey = GetScriptForDestination(dest);
@@ -4022,6 +4037,93 @@ UniValue getaddressinfo(const JSONRPCRequest& request)
     return ret;
 }
 
+static UniValue decodescript(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 1)
+        throw std::runtime_error(
+            "decodescript \"hexstring\"\n"
+            "\nDecode a hex-encoded script.\n"
+            "\nArguments:\n"
+            "1. \"hexstring\"     (string) the hex encoded script\n"
+            "\nResult:\n"
+            "{\n"
+            "  \"asm\":\"asm\",   (string) Script public key\n"
+            "  \"hex\":\"hex\",   (string) hex encoded public key\n"
+            "  \"type\":\"type\", (string) The output type\n"
+            "  \"reqSigs\": n,    (numeric) The required signatures\n"
+            "  \"addresses\": [   (json array of string)\n"
+            "     \"address\"     (string) bitcoinreco address\n"
+            "     ,...\n"
+            "  ],\n"
+            "  \"p2sh\",\"address\" (string) address of P2SH script wrapping this redeem script (not returned if the script is already a P2SH).\n"
+            "}\n"
+            "\nExamples:\n"
+            + HelpExampleCli("decodescript", "\"hexstring\"")
+            + HelpExampleRpc("decodescript", "\"hexstring\"")
+        );
+
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CPubKey newkey;
+    if (!pwallet->GetKeyFromPool(newkey)) {
+        throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
+    }
+
+    RPCTypeCheck(request.params, {UniValue::VSTR});
+
+    UniValue r(UniValue::VOBJ);
+    CScript script;
+    if (request.params[0].get_str().size() > 0){
+        std::vector<unsigned char> scriptData(ParseHexV(request.params[0], "argument"));
+        script = CScript(scriptData.begin(), scriptData.end());
+    } else {
+        // Empty scripts are valid
+    }
+    ScriptPubKeyToUniv(script, r, false,newkey);
+
+    UniValue type;
+    type = find_value(r, "type");
+
+    if (type.isStr() && type.get_str() != "scripthash") {
+        // P2SH cannot be wrapped in a P2SH. If this script is already a P2SH,
+        // don't return the address for a P2SH of the P2SH.
+        r.pushKV("p2sh", EncodeDestination(CScriptID(script),newkey));
+        // P2SH and witness programs cannot be wrapped in P2WSH, if this script
+        // is a witness program, don't return addresses for a segwit programs.
+        if (type.get_str() == "pubkey" || type.get_str() == "pubkeyhash" || type.get_str() == "multisig" || type.get_str() == "nonstandard") {
+            txnouttype which_type;
+            std::vector<std::vector<unsigned char>> solutions_data;
+            Solver(script, which_type, solutions_data);
+            // Uncompressed pubkeys cannot be used with segwit checksigs.
+            // If the script contains an uncompressed pubkey, skip encoding of a segwit program.
+            if ((which_type == TX_PUBKEY) || (which_type == TX_MULTISIG)) {
+                for (const auto& solution : solutions_data) {
+                    if ((solution.size() != 1) && !CPubKey(solution).IsCompressed()) {
+                        return r;
+                    }
+                }
+            }
+            UniValue sr(UniValue::VOBJ);
+            CScript segwitScr;
+            if (which_type == TX_PUBKEY) {
+                segwitScr = GetScriptForDestination(WitnessV0KeyHash(Hash160(solutions_data[0].begin(), solutions_data[0].end())));
+            } else if (which_type == TX_PUBKEYHASH) {
+                segwitScr = GetScriptForDestination(WitnessV0KeyHash(solutions_data[0]));
+            } else {
+                // Scripts that are not fit for P2WPKH are encoded as P2WSH.
+                // Newer segwit program versions should be considered when then become available.
+                uint256 scriptHash;
+                CSHA256().Write(script.data(), script.size()).Finalize(scriptHash.begin());
+                segwitScr = GetScriptForDestination(WitnessV0ScriptHash(scriptHash));
+            }
+            ScriptPubKeyToUniv(segwitScr, sr, true,newkey);
+            sr.pushKV("p2sh-segwit", EncodeDestination(CScriptID(segwitScr),newkey));
+            r.pushKV("segwit", sr);
+        }
+    }
+
+    return r;
+}
+
 static UniValue getaddressesbylabel(const JSONRPCRequest& request)
 {
     CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
@@ -4054,7 +4156,7 @@ static UniValue getaddressesbylabel(const JSONRPCRequest& request)
     UniValue ret(UniValue::VOBJ);
     for (const std::pair<CTxDestination, CAddressBookData>& item : pwallet->mapAddressBook) {
         if (item.second.name == label) {
-            ret.pushKV(EncodeDestination(item.first), AddressBookDataToJSON(item.second, false));
+            ret.pushKV(EncodeDestinationHasSecondKey(item.first), AddressBookDataToJSON(item.second, false));
         }
     }
 
@@ -4133,6 +4235,7 @@ static const CRPCCommand commands[] =
 { //  category              name                                actor (function)                argNames
     //  --------------------- ------------------------          -----------------------         ----------
     { "rawtransactions",    "fundrawtransaction",               &fundrawtransaction,            {"hexstring","options","iswitness"} },
+    { "rawtransactions",    "decodescript",                     &decodescript,                  {"hexstring"} },
     { "hidden",             "resendwallettransactions",         &resendwallettransactions,      {} },
     { "wallet",             "abandontransaction",               &abandontransaction,            {"txid"} },
     { "wallet",             "abortrescan",                      &abortrescan,                   {} },

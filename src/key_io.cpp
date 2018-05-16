@@ -170,7 +170,7 @@ std::string EncodeSecret(const CKey& key)
         data.push_back(1);
     }
     std::string ret = EncodeBase58Check(data);
-    memory_cleanse(data.data(), data.size());
+    memory_cleanse(data.data(), data.size());   
     return ret;
 }
 
@@ -221,10 +221,54 @@ std::string EncodeExtKey(const CExtKey& key)
     return ret;
 }
 
-std::string EncodeDestination(const CTxDestination& dest)
+bool DestinationHasSecondPubKey(const CTxDestination& dest)
+{
+    bool ret=false;
+
+    if (auto id = boost::get<CKeyID>(&dest)) {
+        ret=(id->recokey.size()>0);
+    }
+    if (auto id = boost::get<WitnessV0ScriptHash>(&dest)) {
+        ret=(id->recokey.size()>0);    }
+    if (auto id = boost::get<WitnessV0KeyHash>(&dest)) {
+        ret=(id->recokey.size()>0);    }
+    if (auto id = boost::get<CScriptID>(&dest)) {
+        ret=(id->recokey.size()>0);    }
+    if (auto id = boost::get<WitnessUnknown>(&dest)) {
+        ret=(id->recokey.size()>0);    }
+    if (auto id = boost::get<CNoDestination>(&dest)) {
+        ret=(id->recokey.size()>0);    
+    }
+    return ret;
+}
+
+std::string EncodeDestinationHasSecondKey(const CTxDestination& dest)
 {    
     return boost::apply_visitor(DestinationEncoder(Params()), dest);
 }
+
+std::string EncodeDestination(const CTxDestination& dest,const CPubKey& key2)
+{    
+    CTxDestination destnew=dest;
+    
+    if (!DestinationHasSecondPubKey(destnew)){
+        SetSecondPubKeyForDestination(destnew,key2);  
+    }
+    return boost::apply_visitor(DestinationEncoder(Params()), destnew);
+}
+
+/*std::string EncodeDestination(const CTxDestination& dest,CWallet& wallet)
+{    
+    CTxDestination destnew=dest;
+    
+    if (!DestinationHasSecondPubKey(destnew)){
+        CPubKey key2;
+        if (wallet.GetKeyFromPool(key2, false))
+        SetSecondPubKeyForDestination(destnew,key2);  
+    }
+
+    return boost::apply_visitor(DestinationEncoder(Params()), destnew);
+}*/
 
 CTxDestination DecodeDestination(const std::string& str)
 {

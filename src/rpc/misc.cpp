@@ -157,7 +157,7 @@ static UniValue validateaddress(const JSONRPCRequest& request)
         }
 #endif
         if (ret["address"].isNull()) {
-            std::string currentAddress = EncodeDestination(dest);
+            std::string currentAddress = EncodeDestinationHasSecondKey(dest);
             ret.pushKV("address", currentAddress);
 
             CScript scriptPubKey = GetScriptForDestination(dest);
@@ -203,6 +203,8 @@ static UniValue createmultisig(const JSONRPCRequest& request)
         throw std::runtime_error(msg);
     }
 
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+
     int required = request.params[0].get_int();
 
     // Get the public keys
@@ -222,7 +224,13 @@ static UniValue createmultisig(const JSONRPCRequest& request)
     CScriptID innerID(inner);
 
     UniValue result(UniValue::VOBJ);
-    result.pushKV("address", EncodeDestination(innerID));
+    CPubKey newKey;
+    if (!pwallet->GetKeyFromPool(newKey)) {
+        throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
+    }
+    innerID.recokey.resize(33);
+    std::copy(newKey.begin(), newKey.end() , innerID.recokey.begin());
+    result.pushKV("address", EncodeDestinationHasSecondKey(innerID));
     result.pushKV("redeemScript", HexStr(inner.begin(), inner.end()));
 
     return result;
