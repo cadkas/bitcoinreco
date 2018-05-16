@@ -203,7 +203,9 @@ static UniValue createmultisig(const JSONRPCRequest& request)
         throw std::runtime_error(msg);
     }
 
+    #ifdef ENABLE_WALLET
     CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    #endif
 
     int required = request.params[0].get_int();
 
@@ -223,6 +225,7 @@ static UniValue createmultisig(const JSONRPCRequest& request)
     CScript inner = CreateMultisigRedeemscript(required, pubkeys);
     CScriptID innerID(inner);
 
+    #ifdef ENABLE_WALLET
     UniValue result(UniValue::VOBJ);
     CPubKey newKey;
     if (!pwallet->GetKeyFromPool(newKey)) {
@@ -230,6 +233,7 @@ static UniValue createmultisig(const JSONRPCRequest& request)
     }
     innerID.recokey.resize(33);
     std::copy(newKey.begin(), newKey.end() , innerID.recokey.begin());
+    #endif
     result.pushKV("address", EncodeDestinationHasSecondKey(innerID));
     result.pushKV("redeemScript", HexStr(inner.begin(), inner.end()));
 

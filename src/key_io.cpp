@@ -15,7 +15,6 @@
 #include <assert.h>
 #include <string.h>
 #include <algorithm>
-#include <wallet/wallet.h>
 
 namespace
 {
@@ -247,12 +246,40 @@ std::string EncodeDestinationHasSecondKey(const CTxDestination& dest)
     return boost::apply_visitor(DestinationEncoder(Params()), dest);
 }
 
+void LocalSetSecondPubKeyForDestination(CTxDestination& dest, const CPubKey& key2)
+{
+    if (auto id = boost::get<CKeyID>(&dest)) {
+        id->recokey.resize(33);
+        std::copy(key2.begin(), key2.end() , id->recokey.begin());
+    }
+    if (auto id = boost::get<WitnessV0ScriptHash>(&dest)) {
+        id->recokey.resize(33);
+        std::copy(key2.begin(), key2.end() , id->recokey.begin());
+    }
+    if (auto id = boost::get<WitnessV0KeyHash>(&dest)) {
+        id->recokey.resize(33);
+        std::copy(key2.begin(), key2.end() , id->recokey.begin());
+    }
+    if (auto id = boost::get<CScriptID>(&dest)) {
+        id->recokey.resize(33);
+        std::copy(key2.begin(), key2.end() , id->recokey.begin());
+    }
+    if (auto id = boost::get<WitnessUnknown>(&dest)) {
+        id->recokey.resize(33);
+        std::copy(key2.begin(), key2.end() , id->recokey.begin());
+    }
+    if (auto id = boost::get<CNoDestination>(&dest)) {
+        id->recokey.resize(33);
+        std::copy(key2.begin(), key2.end() , id->recokey.begin());
+    }
+}
+
 std::string EncodeDestination(const CTxDestination& dest,const CPubKey& key2)
 {    
     CTxDestination destnew=dest;
     
     if (!DestinationHasSecondPubKey(destnew)){
-        SetSecondPubKeyForDestination(destnew,key2);  
+        LocalSetSecondPubKeyForDestination(destnew,key2);  
     }
     return boost::apply_visitor(DestinationEncoder(Params()), destnew);
 }
