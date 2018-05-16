@@ -218,7 +218,7 @@ inline void UnserializeTransaction(TxType& tx, Stream& s) {
     unsigned char flags = 0;
     tx.vin.clear();
     tx.vout.clear();
-    userefline=tx.nVersion>=2;
+    userefline=tx.nVersion>=3;
     /* Try to read the vin. In case the dummy is there, this will be read as an empty vector. */
     s >> tx.vin;
     if (tx.vin.size() == 0 && fAllowWitness) {
@@ -251,7 +251,7 @@ inline void SerializeTransaction(const TxType& tx, Stream& s) {
     const bool fAllowWitness = !(s.GetVersion() & SERIALIZE_TRANSACTION_NO_WITNESS);
 
     s << tx.nVersion;
-    userefline=tx.nVersion>=2;
+    userefline=tx.nVersion>=3;
     unsigned char flags = 0;
     // Consistency check
     if (fAllowWitness) {
@@ -284,13 +284,13 @@ class CTransaction
 {
 public:
     // Default transaction version.
-    static const int32_t CURRENT_VERSION=2;
+    static const int32_t CURRENT_VERSION=3;
 
     // Changing the default transaction version requires a two step process: first
     // adapting relay policy by bumping MAX_STANDARD_VERSION, and then later date
     // bumping the default CURRENT_VERSION at which point both CURRENT_VERSION and
     // MAX_STANDARD_VERSION will be equal.
-    static const int32_t MAX_STANDARD_VERSION=2;
+    static const int32_t MAX_STANDARD_VERSION=3;
 
     // The local variables are made const to prevent unintended modification
     // without updating the cached hash value. However, CTransaction is not
