@@ -173,6 +173,13 @@ void WalletFrame::backupWallet()
         walletView->backupWallet();
 }
 
+void WalletFrame::importWallet()
+{
+    WalletView *walletView = currentWalletView();
+    if (walletView)
+        walletView->importWallet();
+}
+
 void WalletFrame::changePassphrase()
 {
     WalletView *walletView = currentWalletView();

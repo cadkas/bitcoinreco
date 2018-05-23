@@ -73,6 +73,9 @@ public:
     //! Back up wallet.
     virtual bool backupWallet(const std::string& filename) = 0;
 
+    //! Import private keys.
+    virtual bool importWallet(const std::string& filename) = 0;
+
     //! Get wallet name.
     virtual std::string getWalletName() = 0;
 

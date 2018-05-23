@@ -4492,6 +4492,93 @@ bool CWallet::BackupWallet(const std::string& strDest)
     return database->Backup(strDest);
 }
 
+bool CWallet::ImportWallet(const std::string& strDest)
+{
+    bool fRescan = true;
+    {
+        WalletRescanReserver reserver(this);
+        LOCK2(cs_main, cs_wallet);
+
+
+        std::string filename = strDest;
+        std::string strLabel = "";
+
+        if (fRescan && fPruneMode) return false;
+            //throw JSONRPCError(RPC_WALLET_ERROR, "Rescan is disabled in pruned mode");
+
+        if (fRescan && !reserver.reserve()) {
+//            throw JSONRPCError(RPC_WALLET_ERROR, "Wallet is currently rescanning. Abort existing rescan or wait.");
+             return false;
+        }
+  
+        CPubKey newKey;
+        if (!GetKeyFromPool(newKey)) {
+            return false;
+//            throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
+        }   
+
+    fs::ifstream optionFile(filename.c_str());
+    if (optionFile.good()){
+
+        while (!optionFile.eof())
+        {
+
+            std::string strSecret;
+            getline(optionFile, strSecret);
+            strSecret.erase(strSecret.find_last_not_of(" \n\r\t")+1);
+            if (strSecret.compare("")==0) continue;
+
+            CKey key = DecodeSecret(strSecret);     
+            if (!key.IsValid()) return false;//throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, strprintf("Invalid private key encoding %s",strSecret));
+
+            CPubKey pubkey = key.GetPubKey();
+            assert(key.VerifyPubKey(pubkey));
+            CKeyID vchAddress = pubkey.GetID();
+            {
+                MarkDirty();
+                // We don't know which corresponding address will be used; label them all
+                for (const auto& dest : GetAllDestinationsForKey(pubkey,newKey)) {
+                    SetAddressBook(dest, strLabel, "receive");
+                }
+
+                // Don't throw error in case a key is already there
+                if (HaveKey(vchAddress)) {
+                    continue;
+                }
+
+                // whenever a key is imported, we need to scan the whole chain
+                UpdateTimeFirstKey(1);
+                mapKeyMetadata[vchAddress].nCreateTime = 1;
+
+                if (!AddKeyPubKey(key, pubkey)) {
+                    //throw JSONRPCError(RPC_WALLET_ERROR, "Error adding key to wallet");
+                    return false;
+                }
+                LearnAllRelatedScripts(pubkey);
+            }
+        }
+
+        if (fRescan) {
+            int64_t scanned_time = RescanFromTime(TIMESTAMP_MIN, reserver, true /* update */);
+            if (IsAbortingRescan()) {
+//                throw JSONRPCError(RPC_MISC_ERROR, "Rescan aborted by user.");
+                return false;
+            }
+            if (scanned_time > TIMESTAMP_MIN) {
+//                throw JSONRPCError(RPC_WALLET_ERROR, "Rescan was unable to fully rescan the blockchain. Some transactions may be missing.");
+                return false;
+            }
+        }
+ 
+    optionFile.close();
+    } else             
+ //       throw JSONRPCError(RPC_WALLET_ERROR, "Could not open text file with private keys.");
+        return false;
+    }
+    
+    return true;
+}
+
 CKeyPool::CKeyPool()
 {
     nTime = GetTime();
@@ -4707,15 +4794,19 @@ void SetSecondPubKeyForDestination(CTxDestination& dest, const CPubKey& key2)
     }
 }
 
-std::vector<CTxDestination> GetAllDestinationsForKey(const CPubKey& key)
-{
+std::vector<CTxDestination> GetAllDestinationsForKey(const CPubKey& key,const CPubKey& key2)
+{    
     CKeyID keyid = key.GetID();
+    CTxDestination normal = keyid;
+    SetSecondPubKeyForDestination(normal,key2);
     if (key.IsCompressed()) {
         CTxDestination segwit = WitnessV0KeyHash(keyid);
         CTxDestination p2sh = CScriptID(GetScriptForDestination(segwit));
-        return std::vector<CTxDestination>{std::move(keyid), std::move(p2sh), std::move(segwit)};
+        SetSecondPubKeyForDestination(segwit,key2);
+        SetSecondPubKeyForDestination(p2sh,key2);
+        return std::vector<CTxDestination>{std::move(normal), std::move(p2sh)/*, std::move(segwit)*/};
     } else {
-        return std::vector<CTxDestination>{std::move(keyid)};
+        return std::vector<CTxDestination>{std::move(normal)};
     }
 }
 

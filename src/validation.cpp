@@ -556,7 +556,6 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                               bool* pfMissingInputs, int64_t nAcceptTime, std::list<CTransactionRef>* plTxnReplaced,
                               bool bypass_limits, const CAmount& nAbsurdFee, std::vector<COutPoint>& coins_to_uncache, bool test_accept)
 {
-    LogPrintf("Accept 0\n");
     const CTransaction& tx = *ptx;
     const uint256 hash = tx.GetHash();
     AssertLockHeld(cs_main);
@@ -564,8 +563,6 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
     if (pfMissingInputs) {
         *pfMissingInputs = false;
     }
-
-    LogPrintf("Accept 1\n");
 
     if (!CheckTransaction(tx, state)){
         LogPrintf("CheckTransaction rejected the transaction\n");
@@ -598,7 +595,6 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
     if (pool.exists(hash)) {
         return state.Invalid(false, REJECT_DUPLICATE, "txn-already-in-mempool");
     }
-    LogPrintf("Accept 2\n");
 
     // Check for conflicts with in-memory transactions
     std::set<uint256> setConflicts;
@@ -643,7 +639,6 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         }
     }
 
-    LogPrintf("Accept 3\n");
     {
         CCoinsView dummy;
         CCoinsViewCache view(&dummy);
@@ -990,7 +985,6 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         }
     }
 
-    LogPrintf("Accept end\n");
     GetMainSignals().TransactionAddedToMempool(ptx);
 
     return true;

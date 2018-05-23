@@ -106,6 +106,7 @@ BitcoinrecoGUI::BitcoinrecoGUI(interfaces::Node& node, const PlatformStyle *_pla
     toggleHideAction(0),
     encryptWalletAction(0),
     backupWalletAction(0),
+    importWalletAction(0),
     changePassphraseAction(0),
     aboutQtAction(0),
     openRPCConsoleAction(0),
@@ -355,6 +356,9 @@ void BitcoinrecoGUI::createActions()
     encryptWalletAction->setCheckable(true);
     backupWalletAction = new QAction(platformStyle->TextColorIcon(":/icons/filesave"), tr("&Backup Wallet..."), this);
     backupWalletAction->setStatusTip(tr("Backup wallet to another location"));
+    importWalletAction = new QAction(platformStyle->TextColorIcon(":/icons/open"), tr("&Import private keys from textfile..."), this);
+    importWalletAction->setStatusTip(tr("Import a list of private keys from a textfile"));
+
     changePassphraseAction = new QAction(platformStyle->TextColorIcon(":/icons/key"), tr("&Change Passphrase..."), this);
     changePassphraseAction->setStatusTip(tr("Change the passphrase used for wallet encryption"));
     signMessageAction = new QAction(platformStyle->TextColorIcon(":/icons/edit"), tr("Sign &message..."), this);
@@ -394,6 +398,7 @@ void BitcoinrecoGUI::createActions()
     {
         connect(encryptWalletAction, SIGNAL(triggered(bool)), walletFrame, SLOT(encryptWallet(bool)));
         connect(backupWalletAction, SIGNAL(triggered()), walletFrame, SLOT(backupWallet()));
+        connect(importWalletAction, SIGNAL(triggered()), walletFrame, SLOT(importWallet()));
         connect(changePassphraseAction, SIGNAL(triggered()), walletFrame, SLOT(changePassphrase()));
         connect(signMessageAction, SIGNAL(triggered()), this, SLOT(gotoSignMessageTab()));
         connect(verifyMessageAction, SIGNAL(triggered()), this, SLOT(gotoVerifyMessageTab()));
@@ -428,6 +433,8 @@ void BitcoinrecoGUI::createMenuBar()
         file->addSeparator();
         file->addAction(usedSendingAddressesAction);
         file->addAction(usedReceivingAddressesAction);
+        file->addSeparator();
+        file->addAction(importWalletAction);
         file->addSeparator();
     }
     file->addAction(quitAction);

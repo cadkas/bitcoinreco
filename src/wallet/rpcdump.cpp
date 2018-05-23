@@ -65,7 +65,7 @@ static std::string DecodeDumpString(const std::string &str) {
     return ret.str();
 }
 
-static bool GetWalletAddressesForKey(CWallet * const pwallet, const CKeyID &keyid, std::string &strAddr, std::string &strLabel)
+static bool GetWalletAddressesForKey(CWallet * const pwallet, const CKeyID &keyid, std::string &strAddr, std::string &strLabel, const CPubKey& key2)
 {
     bool fLabelFound = false;
     CKey key;
@@ -74,7 +74,7 @@ static bool GetWalletAddressesForKey(CWallet * const pwallet, const CKeyID &keyi
     if (!pwallet->GetKeyFromPool(newKey)) {
         throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
     }    
-    for (const auto& dest : GetAllDestinationsForKey(key.GetPubKey())) {
+    for (const auto& dest : GetAllDestinationsForKey(key.GetPubKey(),key2)) {
         if (pwallet->mapAddressBook.count(dest)) {
             if (!strAddr.empty()) {
                 strAddr += ",";
@@ -146,6 +146,11 @@ UniValue importprivkey(const JSONRPCRequest& request)
             throw JSONRPCError(RPC_WALLET_ERROR, "Wallet is currently rescanning. Abort existing rescan or wait.");
         }
 
+        CPubKey newKey;
+        if (!pwallet->GetKeyFromPool(newKey)) {
+            throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
+        }   
+
         CKey key = DecodeSecret(strSecret);
         if (!key.IsValid()) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid private key encoding");
 
@@ -155,7 +160,7 @@ UniValue importprivkey(const JSONRPCRequest& request)
         {
             pwallet->MarkDirty();
             // We don't know which corresponding address will be used; label them all
-            for (const auto& dest : GetAllDestinationsForKey(pubkey)) {
+            for (const auto& dest : GetAllDestinationsForKey(pubkey,newKey)) {
                 pwallet->SetAddressBook(dest, strLabel, "receive");
             }
 
@@ -182,6 +187,127 @@ UniValue importprivkey(const JSONRPCRequest& request)
         if (scanned_time > TIMESTAMP_MIN) {
             throw JSONRPCError(RPC_WALLET_ERROR, "Rescan was unable to fully rescan the blockchain. Some transactions may be missing.");
         }
+    }
+
+    return NullUniValue;
+}
+
+UniValue importprivkeysfromfile(const JSONRPCRequest& request)
+{
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    if (request.fHelp || request.params.size() < 1 || request.params.size() > 3)
+        throw std::runtime_error(
+            "importprivkeysfromfile \"filename\" ( \"label\" ) ( rescan )\n"
+            "\nAdds a private key (as returned by dumpprivkey) to your wallet. Requires a new wallet backup.\n"
+            "Hint: use importmulti to import more than one private key.\n"
+            "\nArguments:\n"
+            "1. \"filename\"          (string, required) Textfile with the private keys (see dumpallprivkeys in Reference line coin)\n"
+            "2. \"label\"            (string, optional, default=\"\") An optional label\n"
+            "3. rescan               (boolean, optional, default=true) Rescan the wallet for transactions\n"
+            "\nNote: This call can take minutes to complete if rescan is true, during that time, other rpc calls\n"
+            "may report that the imported key exists but related transactions are still missing, leading to temporarily incorrect/bogus balances and unspent outputs until rescan completes.\n"
+            "\nExamples:\n"
+            "\nDump a private key\n"
+            + HelpExampleCli("dumpprivkey", "\"myaddress\"") +
+            "\nImport the private key with rescan\n"
+            + HelpExampleCli("importprivkeysfromfile", "\"mykeyfile\"") +
+            "\nImport using a label and without rescan\n"
+            + HelpExampleCli("importprivkeysfromfile", "\"mykeyfile\" \"testing\" false") +
+            "\nImport using default blank label and without rescan\n"
+            + HelpExampleCli("importprivkeysfromfile", "\"mykeyfile\" \"\" false") +
+            "\nAs a JSON-RPC call\n"
+            + HelpExampleRpc("importprivkeysfromfile", "\"mykeyfile\", \"testing\", false")
+        );
+
+
+    WalletRescanReserver reserver(pwallet);
+    bool fRescan = true;
+    {
+        LOCK2(cs_main, pwallet->cs_wallet);
+
+        EnsureWalletIsUnlocked(pwallet);
+
+        std::string filename = request.params[0].get_str();
+        std::string strLabel = "";
+        if (!request.params[1].isNull())
+            strLabel = request.params[1].get_str();
+
+        // Whether to perform rescan after import
+        if (!request.params[2].isNull())
+            fRescan = request.params[2].get_bool();
+
+        if (fRescan && fPruneMode)
+            throw JSONRPCError(RPC_WALLET_ERROR, "Rescan is disabled in pruned mode");
+
+        if (fRescan && !reserver.reserve()) {
+            throw JSONRPCError(RPC_WALLET_ERROR, "Wallet is currently rescanning. Abort existing rescan or wait.");
+        }
+
+        CPubKey newKey;
+        if (!pwallet->GetKeyFromPool(newKey)) {
+            throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
+        }   
+
+
+
+    fs::ifstream optionFile(filename.c_str());
+    if (optionFile.good()){
+
+        while (!optionFile.eof())
+        {
+
+            std::string strSecret;
+            getline(optionFile, strSecret);
+            strSecret.erase(strSecret.find_last_not_of(" \n\r\t")+1);
+            if (strSecret.compare("")==0) continue;
+
+            CKey key = DecodeSecret(strSecret);     
+            if (!key.IsValid()) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, strprintf("Invalid private key encoding %s",strSecret));
+
+            CPubKey pubkey = key.GetPubKey();
+            assert(key.VerifyPubKey(pubkey));
+            CKeyID vchAddress = pubkey.GetID();
+            {
+                pwallet->MarkDirty();
+                // We don't know which corresponding address will be used; label them all
+                for (const auto& dest : GetAllDestinationsForKey(pubkey,newKey)) {
+                    pwallet->SetAddressBook(dest, strLabel, "receive");
+                }
+
+                // Don't throw error in case a key is already there
+                if (pwallet->HaveKey(vchAddress)) {
+                    continue;
+                }
+
+                // whenever a key is imported, we need to scan the whole chain
+                pwallet->UpdateTimeFirstKey(1);
+                pwallet->mapKeyMetadata[vchAddress].nCreateTime = 1;
+
+                if (!pwallet->AddKeyPubKey(key, pubkey)) {
+                    throw JSONRPCError(RPC_WALLET_ERROR, "Error adding key to wallet");
+                }
+                pwallet->LearnAllRelatedScripts(pubkey);
+            }
+        }
+    
+        if (fRescan) {
+            int64_t scanned_time = pwallet->RescanFromTime(TIMESTAMP_MIN, reserver, true /* update */);
+            if (pwallet->IsAbortingRescan()) {
+                throw JSONRPCError(RPC_MISC_ERROR, "Rescan aborted by user.");
+            }
+            if (scanned_time > TIMESTAMP_MIN) {
+                throw JSONRPCError(RPC_WALLET_ERROR, "Rescan was unable to fully rescan the blockchain. Some transactions may be missing.");
+            }
+        }
+
+    optionFile.close();
+    } else             
+        throw JSONRPCError(RPC_WALLET_ERROR, "Could not open text file with private keys.");
+
     }
 
     return NullUniValue;
@@ -480,13 +606,19 @@ UniValue importpubkey(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Pubkey must be a hex string");
     std::vector<unsigned char> data(ParseHex(request.params[0].get_str()));
     CPubKey pubKey(data.begin(), data.end());
+
+    CPubKey newKey;
+    if (!pwallet->GetKeyFromPool(newKey)) {
+        throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
+    }    
+
     if (!pubKey.IsFullyValid())
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Pubkey is not a valid public key");
 
     {
         LOCK2(cs_main, pwallet->cs_wallet);
 
-        for (const auto& dest : GetAllDestinationsForKey(pubKey)) {
+        for (const auto& dest : GetAllDestinationsForKey(pubKey,newKey)) {
             ImportAddress(pwallet, dest, strLabel);
         }
         ImportScript(pwallet, GetScriptForRawPubKey(pubKey), strLabel, false);
@@ -785,7 +917,7 @@ UniValue dumpwallet(const JSONRPCRequest& request)
         CKey key;
         if (pwallet->GetKey(keyid, key)) {
             file << strprintf("%s %s ", EncodeSecret(key), strTime);
-            if (GetWalletAddressesForKey(pwallet, keyid, strAddr, strLabel)) {
+            if (GetWalletAddressesForKey(pwallet, keyid, strAddr, strLabel,newKey)) {
                file << strprintf("label=%s", strLabel);
             } else if (keyid == masterKeyID) {
                 file << "hdmaster=1";

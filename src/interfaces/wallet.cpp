@@ -147,6 +147,7 @@ public:
     }
     void abortRescan() override { m_wallet.AbortRescan(); }
     bool backupWallet(const std::string& filename) override { return m_wallet.BackupWallet(filename); }
+    bool importWallet(const std::string& filename) override { return m_wallet.ImportWallet(filename); }
     std::string getWalletName() override { return m_wallet.GetName(); }
     bool getKeyFromPool(bool internal, CPubKey& pub_key) override
     {

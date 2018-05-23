@@ -29,6 +29,7 @@
 #include <QProgressDialog>
 #include <QPushButton>
 #include <QVBoxLayout>
+#include <wallet/wallet.h>
 
 WalletView::WalletView(const PlatformStyle *_platformStyle, QWidget *parent):
     QStackedWidget(parent),
@@ -264,6 +265,25 @@ void WalletView::backupWallet()
         }
     else {
         Q_EMIT message(tr("Backup Successful"), tr("The wallet data was successfully saved to %1.").arg(filename),
+            CClientUIInterface::MSG_INFORMATION);
+    }
+}
+
+void WalletView::importWallet()
+{
+    QString filename = GUIUtil::getOpenFileName(this,
+        tr("Private keys"), QString(),
+        tr("Private keys (*.txt)"), nullptr);
+
+    if (filename.isEmpty())
+        return;
+
+    if (!walletModel->wallet().importWallet(filename.toLocal8Bit().data())) {
+        Q_EMIT message(tr("Import Failed"), tr("There was an error trying to import the private keys from %1.").arg(filename),
+            CClientUIInterface::MSG_ERROR);
+        }
+    else {
+        Q_EMIT message(tr("Import Successful"), tr("The private keys have been imported from %1.").arg(filename),
             CClientUIInterface::MSG_INFORMATION);
     }
 }

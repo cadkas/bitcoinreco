@@ -1129,6 +1129,7 @@ public:
     void postInitProcess(CScheduler& scheduler);
 
     bool BackupWallet(const std::string& strDest);
+    bool ImportWallet(const std::string& strDest);
 
     /* Set the HD chain model (chain child index counters) */
     bool SetHDChain(const CHDChain& chain, bool memonly);
@@ -1255,7 +1256,7 @@ CPubKey GetSecondPubKeyForDestination(const CTxDestination& dest);
 void SetSecondPubKeyForDestination(CTxDestination& dest, const CPubKey& key2);
 
 /** Get all destinations (potentially) supported by the wallet for the given key. */
-std::vector<CTxDestination> GetAllDestinationsForKey(const CPubKey& key);
+std::vector<CTxDestination> GetAllDestinationsForKey(const CPubKey& key,const CPubKey& key2);
 
 /** RAII object to check and reserve a wallet rescan */
 class WalletRescanReserver
