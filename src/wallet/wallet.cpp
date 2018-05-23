@@ -3068,7 +3068,8 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CTransac
                     CTxOut txout(recipient.nAmount, recipient.scriptPubKey);
                     
                     CPubKey senderpubkey;
-		    GetKeyFromPool(senderpubkey,false);
+                    if (recipient.refline!="")
+		    GetKeyFromPool(senderpubkey,false);//do not need to get a new key for empty reference line
 
                     txout.senderPubKey=senderpubkey;
                     txout.receiverPubKey=recipient.cpkey;
@@ -3655,7 +3656,7 @@ bool CWallet::TopUpKeyPool(unsigned int kpSize)
             m_pool_key_to_index[pubkey.GetID()] = index;
         }
         if (missingInternal + missingExternal > 0) {
-            LogPrintf("keypool added %d keys (%d internal), size=%u (%u internal)\n", missingInternal + missingExternal, missingInternal, setInternalKeyPool.size() + setExternalKeyPool.size(), setInternalKeyPool.size());
+//            LogPrintf("keypool added %d keys (%d internal), size=%u (%u internal)\n", missingInternal + missingExternal, missingInternal, setInternalKeyPool.size() + setExternalKeyPool.size(), setInternalKeyPool.size());
         }
     }
     return true;
@@ -3695,7 +3696,7 @@ void CWallet::ReserveKeyFromKeyPool(int64_t& nIndex, CKeyPool& keypool, bool fRe
 
         assert(keypool.vchPubKey.IsValid());
         m_pool_key_to_index.erase(keypool.vchPubKey.GetID());
-        LogPrintf("keypool reserve %d\n", nIndex);
+  //      LogPrintf("keypool reserve %d\n", nIndex);
     }
 }
 
@@ -3704,7 +3705,7 @@ void CWallet::KeepKey(int64_t nIndex)
     // Remove from key pool
     WalletBatch batch(*database);
     batch.ErasePool(nIndex);
-    LogPrintf("keypool keep %d\n", nIndex);
+//    LogPrintf("keypool keep %d\n", nIndex);
 }
 
 void CWallet::ReturnKey(int64_t nIndex, bool fInternal, const CPubKey& pubkey)

@@ -150,10 +150,18 @@ CKey DecodeSecret(const std::string& str)
     std::vector<unsigned char> data;
     if (DecodeBase58Check(str, data)) {
         const std::vector<unsigned char>& privkey_prefix = Params().Base58Prefix(CChainParams::SECRET_KEY);
+        const std::vector<unsigned char>& privkey_prefixBTC = Params().Base58Prefix(CChainParams::SECRET_KEYBTC);
+        //RECO key
         if ((data.size() == 32 + privkey_prefix.size() || (data.size() == 33 + privkey_prefix.size() && data.back() == 1)) &&
             std::equal(privkey_prefix.begin(), privkey_prefix.end(), data.begin())) {
             bool compressed = data.size() == 33 + privkey_prefix.size();
             key.Set(data.begin() + privkey_prefix.size(), data.begin() + privkey_prefix.size() + 32, compressed);
+        } else
+        //BTC key
+        if ((data.size() == 32 + privkey_prefixBTC.size() || (data.size() == 33 + privkey_prefixBTC.size() && data.back() == 1)) &&
+            std::equal(privkey_prefixBTC.begin(), privkey_prefixBTC.end(), data.begin())) {
+            bool compressed = data.size() == 33 + privkey_prefixBTC.size();
+            key.Set(data.begin() + privkey_prefixBTC.size(), data.begin() + privkey_prefixBTC.size() + 32, compressed);
         }
     }
     memory_cleanse(data.data(), data.size());
