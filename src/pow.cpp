@@ -16,7 +16,7 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
     unsigned int nProofOfWorkLimit = UintToArith256(params.powLimit).GetCompact();
 
     // Only change once per difficulty adjustment interval
-    if (((pindexLast->nHeight+1) % params.DifficultyAdjustmentInterval() != 0 || pindexLast->nHeight+1<5040) && (pindexLast->nHeight+1<5340 || params.fPowAllowMinDifficultyBlocks)) //do not change difficulty for the first 5040 blocks, then change diff every block from block 5340 on main net
+    if (((pindexLast->nHeight+1) % params.DifficultyAdjustmentInterval() != 0 || pindexLast->nHeight+1<5040) && (pindexLast->nHeight+1<5340 || pindexLast->nHeight+1>5580 || params.fPowAllowMinDifficultyBlocks)) //do not change difficulty for the first 5040 blocks, then change diff every block from block 5340 to block 5580 on main net
     {
         if (params.fPowAllowMinDifficultyBlocks)
         {
