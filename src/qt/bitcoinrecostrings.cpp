@@ -11,6 +11,7 @@
 static const char UNUSED *bitcoinreco_strings[] = {
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Bitcoinreco Core"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "The %s developers"),
+QT_TRANSLATE_NOOP("bitcoinreco-core", "Bitcoinreco"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", ""
 "(1 = keep tx meta data e.g. account owner and payment request information, 2 "
 "= drop tx meta data)"),
@@ -69,9 +70,6 @@ QT_TRANSLATE_NOOP("bitcoinreco-core", ""
 QT_TRANSLATE_NOOP("bitcoinreco-core", ""
 "Error loading %s: You can't enable HD on an already existing non-HD wallet"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", ""
-"Error loading wallet %s. -wallet parameter must only specify a filename (not "
-"a path)."),
-QT_TRANSLATE_NOOP("bitcoinreco-core", ""
 "Error reading %s! All keys read correctly, but transaction data or address "
 "book entries might be missing or incorrect."),
 QT_TRANSLATE_NOOP("bitcoinreco-core", ""
@@ -92,6 +90,9 @@ QT_TRANSLATE_NOOP("bitcoinreco-core", ""
 QT_TRANSLATE_NOOP("bitcoinreco-core", ""
 "Extra transactions to keep in memory for compact block reconstructions "
 "(default: %u)"),
+QT_TRANSLATE_NOOP("bitcoinreco-core", ""
+"Fee estimation failed. Fallbackfee is disabled. Wait a few blocks or enable -"
+"fallbackfee."),
 QT_TRANSLATE_NOOP("bitcoinreco-core", ""
 "Fees (in %s/kB) smaller than this are considered zero fee for relaying, "
 "mining and transaction creation (default: %s)"),
@@ -114,8 +115,16 @@ QT_TRANSLATE_NOOP("bitcoinreco-core", ""
 "potentially skip their script verification (0 to verify all, default: %s, "
 "testnet: %s)"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", ""
+"Invalid -wallet path '%s'. -wallet path should point to a directory where "
+"wallet.dat and database/log.?????????? files can be stored, a location where "
+"such a directory could be created, or (for backwards compatibility) the name "
+"of an existing data file in -walletdir (%s)"),
+QT_TRANSLATE_NOOP("bitcoinreco-core", ""
 "Invalid amount for -maxtxfee=<amount>: '%s' (must be at least the minrelay "
 "fee of %s to prevent stuck transactions)"),
+QT_TRANSLATE_NOOP("bitcoinreco-core", ""
+"Location of the auth cookie. Relative paths will be prefixed by a net-"
+"specific datadir location. (default: data dir)"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", ""
 "Maintain a full transaction index, used by the getrawtransaction rpc call "
 "(default: %u)"),
@@ -166,19 +175,29 @@ QT_TRANSLATE_NOOP("bitcoinreco-core", ""
 "Set lowest fee rate (in %s/kB) for transactions to be included in block "
 "creation. (default: %s)"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", ""
-"Set maximum BIP141 block weight to this * 4. Deprecated, use blockmaxweight"),
-QT_TRANSLATE_NOOP("bitcoinreco-core", ""
 "Set the number of script verification threads (%u to %d, 0 = auto, <0 = "
 "leave that many cores free, default: %d)"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", ""
 "Sets the serialization of raw transaction or block hex returned in non-"
 "verbose mode, non-segwit(0) or segwit(1) (default: %d)"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", ""
+"Specify configuration file. Relative paths will be prefixed by datadir "
+"location. (default: %s)"),
+QT_TRANSLATE_NOOP("bitcoinreco-core", ""
 "Specify directory to hold wallets (default: <datadir>/wallets if it exists, "
 "otherwise <datadir>)"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", ""
-"Specify location of debug log file: this can be an absolute path or a path "
-"relative to the data directory (default: %s)"),
+"Specify location of debug log file. Relative paths will be prefixed by a net-"
+"specific datadir location. (default: %s)"),
+QT_TRANSLATE_NOOP("bitcoinreco-core", ""
+"Specify pid file. Relative paths will be prefixed by a net-specific datadir "
+"location. (default: %s)"),
+QT_TRANSLATE_NOOP("bitcoinreco-core", ""
+"Specify wallet database path. Can be specified multiple times to load "
+"multiple wallets. Path is interpreted relative to <walletdir> if it is not "
+"absolute, and will be created if it does not exist (as a directory "
+"containing a wallet.dat file and log files). For backwards compatibility "
+"this will also accept names of existing data files in <walletdir>.)"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", ""
 "Support filtering of blocks and transaction with bloom filters (default: %u)"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", ""
@@ -264,7 +283,6 @@ QT_TRANSLATE_NOOP("bitcoinreco-core", ""
 QT_TRANSLATE_NOOP("bitcoinreco-core", "%d of last 100 blocks have unexpected version"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "%s corrupt, salvage failed"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "%s is set very high!"),
-QT_TRANSLATE_NOOP("bitcoinreco-core", "(default: %s)"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "(default: %u)"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "-maxmempool must be at least %d MB"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "<category> can be:"),
@@ -279,6 +297,7 @@ QT_TRANSLATE_NOOP("bitcoinreco-core", "Automatically create Tor hidden service (
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Block creation options:"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Cannot downgrade wallet"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Cannot resolve -%s address: '%s'"),
+QT_TRANSLATE_NOOP("bitcoinreco-core", "Cannot write to data directory '%s'; check permissions."),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Chain selection options:"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Change index out of range"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Connect through SOCKS5 proxy"),
@@ -303,9 +322,7 @@ QT_TRANSLATE_NOOP("bitcoinreco-core", "Error loading %s: Wallet corrupted"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Error loading %s: Wallet requires newer version of %s"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Error loading %s: You can't disable HD on an already existing HD wallet"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Error loading block database"),
-QT_TRANSLATE_NOOP("bitcoinreco-core", "Error loading wallet %s. -wallet filename must be a regular file."),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Error loading wallet %s. Duplicate -wallet filename specified."),
-QT_TRANSLATE_NOOP("bitcoinreco-core", "Error loading wallet %s. Invalid characters in -wallet filename."),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Error opening block database"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Error reading from database, shutting down."),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Error upgrading chainstate database"),
@@ -339,7 +356,6 @@ QT_TRANSLATE_NOOP("bitcoinreco-core", "Loading P2P addresses..."),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Loading banlist..."),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Loading block index..."),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Loading wallet..."),
-QT_TRANSLATE_NOOP("bitcoinreco-core", "Location of the auth cookie (default: data dir)"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Maintain at most <n> connections to peers (default: %u)"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Make the wallet broadcast transactions"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Maximum per-connection receive buffer, <n>*1000 bytes (default: %u)"),
@@ -379,11 +395,10 @@ QT_TRANSLATE_NOOP("bitcoinreco-core", "Signing transaction failed"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Specified -walletdir \"%s\" does not exist"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Specified -walletdir \"%s\" is a relative path"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Specified -walletdir \"%s\" is not a directory"),
-QT_TRANSLATE_NOOP("bitcoinreco-core", "Specify configuration file (default: %s)"),
+QT_TRANSLATE_NOOP("bitcoinreco-core", "Specified blocks directory \"%s\" does not exist.\n"),
+QT_TRANSLATE_NOOP("bitcoinreco-core", "Specify blocks directory (default: <datadir>/blocks)"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Specify connection timeout in milliseconds (minimum: 1, default: %d)"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Specify data directory"),
-QT_TRANSLATE_NOOP("bitcoinreco-core", "Specify pid file (default: %s)"),
-QT_TRANSLATE_NOOP("bitcoinreco-core", "Specify wallet file (within data directory)"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Specify your own public address"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Spend unconfirmed change when sending transactions (default: %u)"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Starting network threads..."),
@@ -414,6 +429,7 @@ QT_TRANSLATE_NOOP("bitcoinreco-core", "Unsupported argument -tor found, use -oni
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Unsupported logging category %s=%s."),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Upgrade wallet to latest format on startup"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Upgrading UTXO database"),
+QT_TRANSLATE_NOOP("bitcoinreco-core", "Upgrading txindex database"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Use UPnP to map the listening port (default: %u)"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Use the test chain"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "User Agent comment (%s) contains unsafe characters."),
@@ -427,7 +443,6 @@ QT_TRANSLATE_NOOP("bitcoinreco-core", "Wallet options:"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Warning"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Warning: unknown new rules activated (versionbit %i)"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Whether to operate in a blocks only mode (default: %u)"),
-QT_TRANSLATE_NOOP("bitcoinreco-core", "You need to rebuild the database using -reindex to change -txindex"),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "Zapping all transactions from wallet..."),
 QT_TRANSLATE_NOOP("bitcoinreco-core", "ZeroMQ notification options:"),
 };
